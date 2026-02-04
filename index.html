@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>타이핑 게임</title>
+    <title>벽돌깨기 게임</title>
     <style>
         * {
             margin: 0;
@@ -15,115 +15,47 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
             min-height: 100vh;
-            overflow: hidden;
-        }
-
-        .game-container {
-            width: 100%;
-            max-width: 800px;
-            height: 100vh;
-            margin: 0 auto;
-            position: relative;
-            background: rgba(0, 0, 0, 0.3);
-            border-left: 2px solid #0f3460;
-            border-right: 2px solid #0f3460;
-        }
-
-        .header {
             display: flex;
-            justify-content: space-between;
+            justify-content: center;
             align-items: center;
-            padding: 15px 20px;
-            background: rgba(0, 0, 0, 0.5);
-            color: #fff;
-            font-size: 18px;
-        }
-
-        .score {
-            color: #00d9ff;
-            font-weight: bold;
-        }
-
-        .lives {
-            color: #ff6b6b;
-            font-weight: bold;
-        }
-
-        .level {
-            color: #4ade80;
-            font-weight: bold;
-        }
-
-        .game-area {
-            width: 100%;
-            height: calc(100vh - 130px);
-            position: relative;
             overflow: hidden;
         }
 
-        .word {
-            position: absolute;
-            padding: 8px 16px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: #fff;
-            border-radius: 20px;
-            font-size: 18px;
-            font-weight: bold;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-            transition: transform 0.1s;
-            white-space: nowrap;
-        }
-
-        .word.matched {
-            background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
-            transform: scale(1.1);
-        }
-
-        .word.partial {
-            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
-        }
-
-        .input-area {
-            position: absolute;
-            bottom: 0;
-            width: 100%;
-            padding: 15px 20px;
-            background: rgba(0, 0, 0, 0.7);
+        .game-wrapper {
             display: flex;
+            flex-direction: column;
+            align-items: center;
             gap: 10px;
         }
 
-        .input-area input {
-            flex: 1;
+        .header {
+            width: 800px;
+            display: flex;
+            justify-content: space-between;
             padding: 15px 20px;
-            font-size: 20px;
-            border: none;
-            border-radius: 30px;
-            background: #fff;
-            outline: none;
-            color: #333;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 10px 10px 0 0;
+            color: #fff;
+            font-size: 18px;
         }
 
-        .input-area input:focus {
-            box-shadow: 0 0 20px rgba(0, 217, 255, 0.5);
+        .score { color: #00d9ff; font-weight: bold; }
+        .lives { color: #ff6b6b; font-weight: bold; }
+        .level { color: #4ade80; font-weight: bold; }
+
+        canvas {
+            background: linear-gradient(180deg, #0f0f23 0%, #1a1a3e 100%);
+            border-radius: 0 0 10px 10px;
+            display: block;
         }
 
-        .danger-zone {
-            position: absolute;
-            bottom: 80px;
-            width: 100%;
-            height: 3px;
-            background: linear-gradient(90deg, transparent, #ff6b6b, transparent);
-            box-shadow: 0 0 20px #ff6b6b;
-        }
-
-        .start-screen, .game-over-screen {
-            position: absolute;
+        .overlay {
+            position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.9);
+            background: rgba(0, 0, 0, 0.85);
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -132,7 +64,9 @@
             z-index: 100;
         }
 
-        .start-screen h1, .game-over-screen h1 {
+        .overlay.hidden { display: none; }
+
+        .overlay h1 {
             font-size: 48px;
             margin-bottom: 20px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -141,18 +75,18 @@
             background-clip: text;
         }
 
-        .start-screen p, .game-over-screen p {
+        .overlay p {
             font-size: 18px;
-            margin-bottom: 30px;
+            margin-bottom: 10px;
             color: #aaa;
             text-align: center;
             line-height: 1.6;
         }
 
         .final-score {
-            font-size: 24px;
+            font-size: 28px;
             color: #00d9ff;
-            margin-bottom: 20px;
+            margin: 20px 0;
         }
 
         .btn {
@@ -164,6 +98,7 @@
             color: #fff;
             cursor: pointer;
             transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 20px;
         }
 
         .btn:hover {
@@ -171,330 +106,387 @@
             box-shadow: 0 10px 30px rgba(102, 126, 234, 0.5);
         }
 
-        .hidden {
-            display: none !important;
-        }
-
-        .combo {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 36px;
-            font-weight: bold;
-            color: #fbbf24;
-            text-shadow: 0 0 20px #fbbf24;
-            animation: comboFade 1s forwards;
-            pointer-events: none;
-        }
-
-        @keyframes comboFade {
-            0% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-            100% { opacity: 0; transform: translate(-50%, -100%) scale(1.5); }
-        }
-
-        .effect {
-            position: absolute;
-            pointer-events: none;
-            animation: explode 0.5s forwards;
-        }
-
-        @keyframes explode {
-            0% { opacity: 1; transform: scale(1); }
-            100% { opacity: 0; transform: scale(2); }
+        .controls {
+            color: #666;
+            font-size: 14px;
+            margin-top: 10px;
         }
     </style>
 </head>
 <body>
-    <div class="game-container">
+    <div class="game-wrapper">
         <div class="header">
             <div class="score">점수: <span id="score">0</span></div>
             <div class="level">레벨: <span id="level">1</span></div>
             <div class="lives">생명: <span id="lives">♥♥♥</span></div>
         </div>
+        <canvas id="gameCanvas" width="800" height="500"></canvas>
+        <div class="controls">마우스 또는 ← → 키로 패들을 움직이세요</div>
+    </div>
 
-        <div class="game-area" id="gameArea">
-            <div class="danger-zone"></div>
-        </div>
+    <div class="overlay" id="startScreen">
+        <h1>벽돌깨기</h1>
+        <p>공을 튕겨서 모든 벽돌을 부수세요!<br>공을 놓치면 생명이 줄어듭니다.</p>
+        <button class="btn" id="startBtn">게임 시작</button>
+    </div>
 
-        <div class="input-area">
-            <input type="text" id="typingInput" placeholder="여기에 단어를 입력하세요..." autocomplete="off">
-        </div>
+    <div class="overlay hidden" id="gameOverScreen">
+        <h1>게임 오버</h1>
+        <div class="final-score">최종 점수: <span id="finalScore">0</span></div>
+        <p>최고 기록: <span id="highScore">0</span></p>
+        <button class="btn" id="restartBtn">다시 시작</button>
+    </div>
 
-        <div class="start-screen" id="startScreen">
-            <h1>타이핑 게임</h1>
-            <p>떨어지는 단어를 타이핑해서 없애세요!<br>단어가 바닥에 닿으면 생명이 줄어듭니다.</p>
-            <button class="btn" id="startBtn">게임 시작</button>
-        </div>
-
-        <div class="game-over-screen hidden" id="gameOverScreen">
-            <h1>게임 오버</h1>
-            <div class="final-score">최종 점수: <span id="finalScore">0</span></div>
-            <p>최고 기록: <span id="highScore">0</span></p>
-            <button class="btn" id="restartBtn">다시 시작</button>
-        </div>
+    <div class="overlay hidden" id="winScreen">
+        <h1>축하합니다!</h1>
+        <div class="final-score">점수: <span id="winScore">0</span></div>
+        <p>모든 벽돌을 깼습니다!</p>
+        <button class="btn" id="nextLevelBtn">다음 레벨</button>
     </div>
 
     <script>
-        const words = [
-            // 쉬운 단어 (레벨 1-2)
-            '사과', '바나나', '포도', '딸기', '수박', '참외', '복숭아', '배', '감', '귤',
-            '하늘', '바다', '산', '강', '숲', '꽃', '나무', '구름', '별', '달',
-            '고양이', '강아지', '토끼', '새', '물고기', '호랑이', '사자', '곰', '여우', '늑대',
-            // 중간 단어 (레벨 3-4)
-            '컴퓨터', '키보드', '마우스', '모니터', '스피커', '프린터', '노트북', '태블릿',
-            '프로그램', '인터넷', '소프트웨어', '하드웨어', '네트워크', '데이터베이스',
-            '자동차', '비행기', '기차', '자전거', '오토바이', '헬리콥터', '잠수함',
-            // 어려운 단어 (레벨 5+)
-            '프로그래밍', '알고리즘', '자료구조', '운영체제', '컴파일러', '인공지능',
-            '블록체인', '클라우드', '빅데이터', '사이버보안', '머신러닝', '딥러닝',
-            '아이스크림', '햄버거', '스파게티', '샌드위치', '치즈케이크', '초콜릿',
-            // 영어 단어
-            'apple', 'banana', 'computer', 'keyboard', 'program', 'internet',
-            'javascript', 'python', 'coding', 'developer', 'software', 'hardware',
-            'game', 'player', 'score', 'level', 'typing', 'speed', 'fast', 'slow'
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Game elements
+        const paddle = {
+            width: 100,
+            height: 15,
+            x: 350,
+            speed: 8
+        };
+        paddle.y = canvas.height - 30;
+
+        const ball = {
+            radius: 8,
+            x: canvas.width / 2,
+            y: paddle.y - 10,
+            dx: 4,
+            dy: -4,
+            speed: 5
+        };
+
+        // Brick settings
+        const brickRowCount = 5;
+        const brickColumnCount = 10;
+        const brickWidth = 70;
+        const brickHeight = 20;
+        const brickPadding = 5;
+        const brickOffsetTop = 50;
+        const brickOffsetLeft = 30;
+
+        // Game state
+        let score = 0;
+        let lives = 3;
+        let level = 1;
+        let bricks = [];
+        let gameRunning = false;
+        let ballLaunched = false;
+        let highScore = localStorage.getItem('brickBreakerHighScore') || 0;
+
+        // Brick colors by row
+        const brickColors = [
+            '#ff6b6b', '#feca57', '#48dbfb', '#1dd1a1', '#5f27cd'
         ];
 
-        class TypingGame {
-            constructor() {
-                this.gameArea = document.getElementById('gameArea');
-                this.typingInput = document.getElementById('typingInput');
-                this.scoreDisplay = document.getElementById('score');
-                this.levelDisplay = document.getElementById('level');
-                this.livesDisplay = document.getElementById('lives');
-                this.startScreen = document.getElementById('startScreen');
-                this.gameOverScreen = document.getElementById('gameOverScreen');
-                this.finalScoreDisplay = document.getElementById('finalScore');
-                this.highScoreDisplay = document.getElementById('highScore');
-                this.startBtn = document.getElementById('startBtn');
-                this.restartBtn = document.getElementById('restartBtn');
+        // Input handling
+        let leftPressed = false;
+        let rightPressed = false;
+        let mouseX = null;
 
-                this.score = 0;
-                this.lives = 3;
-                this.level = 1;
-                this.combo = 0;
-                this.activeWords = [];
-                this.gameLoop = null;
-                this.spawnLoop = null;
-                this.isPlaying = false;
-                this.highScore = localStorage.getItem('typingGameHighScore') || 0;
+        // DOM elements
+        const scoreDisplay = document.getElementById('score');
+        const levelDisplay = document.getElementById('level');
+        const livesDisplay = document.getElementById('lives');
+        const startScreen = document.getElementById('startScreen');
+        const gameOverScreen = document.getElementById('gameOverScreen');
+        const winScreen = document.getElementById('winScreen');
+        const finalScoreDisplay = document.getElementById('finalScore');
+        const highScoreDisplay = document.getElementById('highScore');
+        const winScoreDisplay = document.getElementById('winScore');
 
-                this.bindEvents();
-            }
-
-            bindEvents() {
-                this.startBtn.addEventListener('click', () => this.startGame());
-                this.restartBtn.addEventListener('click', () => this.startGame());
-                this.typingInput.addEventListener('input', (e) => this.checkInput(e.target.value));
-            }
-
-            startGame() {
-                this.score = 0;
-                this.lives = 3;
-                this.level = 1;
-                this.combo = 0;
-                this.activeWords = [];
-                this.isPlaying = true;
-
-                this.updateDisplay();
-                this.clearWords();
-
-                this.startScreen.classList.add('hidden');
-                this.gameOverScreen.classList.add('hidden');
-                this.typingInput.value = '';
-                this.typingInput.focus();
-
-                this.gameLoop = setInterval(() => this.update(), 50);
-                this.spawnLoop = setInterval(() => this.spawnWord(), this.getSpawnInterval());
-
-                setTimeout(() => this.spawnWord(), 500);
-            }
-
-            getSpawnInterval() {
-                return Math.max(1500 - (this.level * 150), 600);
-            }
-
-            getFallSpeed() {
-                return 0.5 + (this.level * 0.15);
-            }
-
-            getWordForLevel() {
-                let pool;
-                if (this.level <= 2) {
-                    pool = words.slice(0, 30);
-                } else if (this.level <= 4) {
-                    pool = words.slice(0, 55);
-                } else {
-                    pool = words;
+        function createBricks() {
+            bricks = [];
+            for (let c = 0; c < brickColumnCount; c++) {
+                bricks[c] = [];
+                for (let r = 0; r < brickRowCount; r++) {
+                    const hits = level > 2 && r === 0 ? 2 : 1;
+                    bricks[c][r] = {
+                        x: 0,
+                        y: 0,
+                        status: hits,
+                        color: brickColors[r]
+                    };
                 }
-                return pool[Math.floor(Math.random() * pool.length)];
-            }
-
-            spawnWord() {
-                if (!this.isPlaying) return;
-
-                const word = this.getWordForLevel();
-                const wordElement = document.createElement('div');
-                wordElement.className = 'word';
-                wordElement.textContent = word;
-                wordElement.dataset.word = word;
-
-                const maxX = this.gameArea.clientWidth - 150;
-                const x = Math.random() * maxX + 20;
-
-                wordElement.style.left = x + 'px';
-                wordElement.style.top = '-50px';
-
-                this.gameArea.appendChild(wordElement);
-                this.activeWords.push({
-                    element: wordElement,
-                    word: word,
-                    y: -50
-                });
-            }
-
-            update() {
-                if (!this.isPlaying) return;
-
-                const dangerY = this.gameArea.clientHeight - 100;
-                const fallSpeed = this.getFallSpeed();
-
-                for (let i = this.activeWords.length - 1; i >= 0; i--) {
-                    const wordObj = this.activeWords[i];
-                    wordObj.y += fallSpeed;
-                    wordObj.element.style.top = wordObj.y + 'px';
-
-                    if (wordObj.y > dangerY) {
-                        this.removeWord(i);
-                        this.loseLife();
-                    }
-                }
-
-                // 레벨업 체크
-                const newLevel = Math.floor(this.score / 100) + 1;
-                if (newLevel > this.level) {
-                    this.level = newLevel;
-                    this.levelDisplay.textContent = this.level;
-
-                    clearInterval(this.spawnLoop);
-                    this.spawnLoop = setInterval(() => this.spawnWord(), this.getSpawnInterval());
-
-                    this.showCombo('레벨 업!');
-                }
-            }
-
-            checkInput(input) {
-                if (!this.isPlaying) return;
-
-                const lowerInput = input.toLowerCase();
-
-                for (let i = 0; i < this.activeWords.length; i++) {
-                    const wordObj = this.activeWords[i];
-                    const word = wordObj.word.toLowerCase();
-
-                    if (word === lowerInput) {
-                        // 정답!
-                        this.combo++;
-                        const comboBonus = Math.floor(this.combo / 3);
-                        const points = 10 + (wordObj.word.length * 2) + (comboBonus * 5);
-                        this.score += points;
-
-                        wordObj.element.classList.add('matched');
-                        this.createEffect(wordObj.element);
-
-                        if (this.combo > 0 && this.combo % 3 === 0) {
-                            this.showCombo(`${this.combo} 콤보!`);
-                        }
-
-                        setTimeout(() => {
-                            this.removeWord(i);
-                        }, 150);
-
-                        this.typingInput.value = '';
-                        this.updateDisplay();
-                        return;
-                    } else if (word.startsWith(lowerInput) && lowerInput.length > 0) {
-                        wordObj.element.classList.add('partial');
-                    } else {
-                        wordObj.element.classList.remove('partial');
-                    }
-                }
-            }
-
-            createEffect(element) {
-                const rect = element.getBoundingClientRect();
-                const gameRect = this.gameArea.getBoundingClientRect();
-
-                for (let i = 0; i < 8; i++) {
-                    const particle = document.createElement('div');
-                    particle.className = 'effect';
-                    particle.style.left = (rect.left - gameRect.left + rect.width / 2) + 'px';
-                    particle.style.top = (rect.top - gameRect.top + rect.height / 2) + 'px';
-                    particle.style.width = '10px';
-                    particle.style.height = '10px';
-                    particle.style.background = '#4ade80';
-                    particle.style.borderRadius = '50%';
-                    this.gameArea.appendChild(particle);
-
-                    setTimeout(() => particle.remove(), 500);
-                }
-            }
-
-            showCombo(text) {
-                const comboEl = document.createElement('div');
-                comboEl.className = 'combo';
-                comboEl.textContent = text;
-                this.gameArea.appendChild(comboEl);
-
-                setTimeout(() => comboEl.remove(), 1000);
-            }
-
-            removeWord(index) {
-                if (this.activeWords[index]) {
-                    this.activeWords[index].element.remove();
-                    this.activeWords.splice(index, 1);
-                }
-            }
-
-            clearWords() {
-                this.activeWords.forEach(w => w.element.remove());
-                this.activeWords = [];
-            }
-
-            loseLife() {
-                this.lives--;
-                this.combo = 0;
-                this.updateDisplay();
-
-                if (this.lives <= 0) {
-                    this.gameOver();
-                }
-            }
-
-            updateDisplay() {
-                this.scoreDisplay.textContent = this.score;
-                this.levelDisplay.textContent = this.level;
-                this.livesDisplay.textContent = '♥'.repeat(this.lives) + '♡'.repeat(3 - this.lives);
-            }
-
-            gameOver() {
-                this.isPlaying = false;
-                clearInterval(this.gameLoop);
-                clearInterval(this.spawnLoop);
-
-                if (this.score > this.highScore) {
-                    this.highScore = this.score;
-                    localStorage.setItem('typingGameHighScore', this.highScore);
-                }
-
-                this.finalScoreDisplay.textContent = this.score;
-                this.highScoreDisplay.textContent = this.highScore;
-                this.gameOverScreen.classList.remove('hidden');
             }
         }
 
-        // 게임 시작
-        const game = new TypingGame();
+        function drawBricks() {
+            for (let c = 0; c < brickColumnCount; c++) {
+                for (let r = 0; r < brickRowCount; r++) {
+                    if (bricks[c][r].status > 0) {
+                        const brickX = c * (brickWidth + brickPadding) + brickOffsetLeft;
+                        const brickY = r * (brickHeight + brickPadding) + brickOffsetTop;
+                        bricks[c][r].x = brickX;
+                        bricks[c][r].y = brickY;
+
+                        ctx.beginPath();
+                        ctx.roundRect(brickX, brickY, brickWidth, brickHeight, 5);
+
+                        // Darker color for bricks with 2 hits remaining
+                        let color = bricks[c][r].color;
+                        if (bricks[c][r].status === 2) {
+                            ctx.fillStyle = color;
+                            ctx.fill();
+                            ctx.strokeStyle = '#fff';
+                            ctx.lineWidth = 2;
+                            ctx.stroke();
+                        } else {
+                            ctx.fillStyle = color;
+                            ctx.fill();
+                        }
+                        ctx.closePath();
+                    }
+                }
+            }
+        }
+
+        function drawPaddle() {
+            ctx.beginPath();
+            ctx.roundRect(paddle.x, paddle.y, paddle.width, paddle.height, 7);
+            const gradient = ctx.createLinearGradient(paddle.x, paddle.y, paddle.x, paddle.y + paddle.height);
+            gradient.addColorStop(0, '#667eea');
+            gradient.addColorStop(1, '#764ba2');
+            ctx.fillStyle = gradient;
+            ctx.fill();
+            ctx.closePath();
+        }
+
+        function drawBall() {
+            ctx.beginPath();
+            ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+            const gradient = ctx.createRadialGradient(ball.x - 2, ball.y - 2, 0, ball.x, ball.y, ball.radius);
+            gradient.addColorStop(0, '#fff');
+            gradient.addColorStop(1, '#00d9ff');
+            ctx.fillStyle = gradient;
+            ctx.fill();
+            ctx.closePath();
+        }
+
+        function collisionDetection() {
+            for (let c = 0; c < brickColumnCount; c++) {
+                for (let r = 0; r < brickRowCount; r++) {
+                    const b = bricks[c][r];
+                    if (b.status > 0) {
+                        if (ball.x > b.x && ball.x < b.x + brickWidth &&
+                            ball.y > b.y && ball.y < b.y + brickHeight) {
+                            ball.dy = -ball.dy;
+                            b.status--;
+                            score += 10 * level;
+                            scoreDisplay.textContent = score;
+
+                            if (checkWin()) {
+                                winLevel();
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        function checkWin() {
+            for (let c = 0; c < brickColumnCount; c++) {
+                for (let r = 0; r < brickRowCount; r++) {
+                    if (bricks[c][r].status > 0) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+
+        function winLevel() {
+            gameRunning = false;
+            winScoreDisplay.textContent = score;
+            winScreen.classList.remove('hidden');
+        }
+
+        function nextLevel() {
+            level++;
+            levelDisplay.textContent = level;
+            ball.speed += 0.5;
+            createBricks();
+            resetBall();
+            winScreen.classList.add('hidden');
+            gameRunning = true;
+            ballLaunched = false;
+            gameLoop();
+        }
+
+        function movePaddle() {
+            if (mouseX !== null) {
+                paddle.x = mouseX - paddle.width / 2;
+            } else {
+                if (leftPressed) {
+                    paddle.x -= paddle.speed;
+                }
+                if (rightPressed) {
+                    paddle.x += paddle.speed;
+                }
+            }
+
+            // Keep paddle in bounds
+            if (paddle.x < 0) paddle.x = 0;
+            if (paddle.x + paddle.width > canvas.width) {
+                paddle.x = canvas.width - paddle.width;
+            }
+        }
+
+        function moveBall() {
+            if (!ballLaunched) {
+                ball.x = paddle.x + paddle.width / 2;
+                ball.y = paddle.y - ball.radius;
+                return;
+            }
+
+            ball.x += ball.dx;
+            ball.y += ball.dy;
+
+            // Wall collision
+            if (ball.x + ball.radius > canvas.width || ball.x - ball.radius < 0) {
+                ball.dx = -ball.dx;
+            }
+            if (ball.y - ball.radius < 0) {
+                ball.dy = -ball.dy;
+            }
+
+            // Paddle collision
+            if (ball.y + ball.radius > paddle.y &&
+                ball.x > paddle.x && ball.x < paddle.x + paddle.width) {
+                // Calculate angle based on where ball hits paddle
+                const hitPos = (ball.x - paddle.x) / paddle.width;
+                const angle = (hitPos - 0.5) * Math.PI / 3; // -60 to +60 degrees
+
+                const speed = Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy);
+                ball.dx = speed * Math.sin(angle);
+                ball.dy = -Math.abs(speed * Math.cos(angle));
+            }
+
+            // Ball out of bounds
+            if (ball.y + ball.radius > canvas.height) {
+                lives--;
+                livesDisplay.textContent = '♥'.repeat(lives) + '♡'.repeat(3 - lives);
+
+                if (lives <= 0) {
+                    gameOver();
+                } else {
+                    resetBall();
+                    ballLaunched = false;
+                }
+            }
+        }
+
+        function resetBall() {
+            ball.x = paddle.x + paddle.width / 2;
+            ball.y = paddle.y - ball.radius;
+            ball.dx = (Math.random() > 0.5 ? 1 : -1) * ball.speed * 0.7;
+            ball.dy = -ball.speed;
+        }
+
+        function gameOver() {
+            gameRunning = false;
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('brickBreakerHighScore', highScore);
+            }
+            finalScoreDisplay.textContent = score;
+            highScoreDisplay.textContent = highScore;
+            gameOverScreen.classList.remove('hidden');
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawBricks();
+            drawPaddle();
+            drawBall();
+
+            if (!ballLaunched) {
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+                ctx.font = '16px Segoe UI';
+                ctx.textAlign = 'center';
+                ctx.fillText('클릭하거나 스페이스바를 눌러 공을 발사하세요', canvas.width / 2, canvas.height / 2);
+            }
+        }
+
+        function gameLoop() {
+            if (!gameRunning) return;
+
+            movePaddle();
+            moveBall();
+            collisionDetection();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function startGame() {
+            score = 0;
+            lives = 3;
+            level = 1;
+            ball.speed = 5;
+
+            scoreDisplay.textContent = score;
+            levelDisplay.textContent = level;
+            livesDisplay.textContent = '♥♥♥';
+
+            createBricks();
+            paddle.x = canvas.width / 2 - paddle.width / 2;
+            resetBall();
+
+            startScreen.classList.add('hidden');
+            gameOverScreen.classList.add('hidden');
+            winScreen.classList.add('hidden');
+
+            gameRunning = true;
+            ballLaunched = false;
+            gameLoop();
+        }
+
+        // Event listeners
+        document.getElementById('startBtn').addEventListener('click', startGame);
+        document.getElementById('restartBtn').addEventListener('click', startGame);
+        document.getElementById('nextLevelBtn').addEventListener('click', nextLevel);
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft' || e.key === 'Left') leftPressed = true;
+            if (e.key === 'ArrowRight' || e.key === 'Right') rightPressed = true;
+            if (e.key === ' ' && gameRunning && !ballLaunched) {
+                ballLaunched = true;
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            if (e.key === 'ArrowLeft' || e.key === 'Left') leftPressed = false;
+            if (e.key === 'ArrowRight' || e.key === 'Right') rightPressed = false;
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            mouseX = e.clientX - rect.left;
+        });
+
+        canvas.addEventListener('mouseleave', () => {
+            mouseX = null;
+        });
+
+        canvas.addEventListener('click', () => {
+            if (gameRunning && !ballLaunched) {
+                ballLaunched = true;
+            }
+        });
+
+        // Initial draw
+        createBricks();
+        draw();
     </script>
 </body>
 </html>
