@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>타이핑 게임</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         * {
             margin: 0;
@@ -203,6 +204,90 @@
             0% { opacity: 1; transform: scale(1); }
             100% { opacity: 0; transform: scale(2); }
         }
+
+        .player-name-input {
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 20px;
+            background: #fff;
+            outline: none;
+            color: #333;
+            margin-bottom: 15px;
+            width: 200px;
+            text-align: center;
+        }
+
+        .leaderboard {
+            margin-top: 20px;
+            width: 300px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .leaderboard h3 {
+            color: #fbbf24;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+
+        .leaderboard-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+
+        .leaderboard-item.highlight {
+            background: rgba(102, 126, 234, 0.3);
+            border: 1px solid #667eea;
+        }
+
+        .leaderboard-item .rank {
+            color: #fbbf24;
+            font-weight: bold;
+            width: 30px;
+        }
+
+        .leaderboard-item .name {
+            flex: 1;
+            text-align: left;
+            margin-left: 10px;
+        }
+
+        .leaderboard-item .score {
+            color: #00d9ff;
+            font-weight: bold;
+        }
+
+        .save-status {
+            font-size: 12px;
+            color: #4ade80;
+            margin-top: 10px;
+        }
+
+        .save-status.error {
+            color: #ff6b6b;
+        }
+
+        .btn-secondary {
+            padding: 10px 25px;
+            font-size: 14px;
+            border: none;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-top: 10px;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
     </style>
 </head>
 <body>
@@ -231,11 +316,22 @@
             <h1>게임 오버</h1>
             <div class="final-score">최종 점수: <span id="finalScore">0</span></div>
             <p>최고 기록: <span id="highScore">0</span></p>
-            <button class="btn" id="restartBtn">다시 시작</button>
+            <input type="text" class="player-name-input" id="playerNameInput" placeholder="이름을 입력하세요" maxlength="20">
+            <button class="btn" id="saveScoreBtn">기록 저장</button>
+            <div class="save-status hidden" id="saveStatus"></div>
+            <button class="btn" id="restartBtn" style="margin-top: 10px;">다시 시작</button>
+            <div class="leaderboard" id="leaderboard">
+                <h3>🏆 리더보드</h3>
+                <div id="leaderboardList"></div>
+            </div>
         </div>
     </div>
 
     <script>
+        // Supabase 설정 - 아래 값을 실제 Supabase 프로젝트 정보로 변경하세요
+        const SUPABASE_URL = 'YOUR_SUPABASE_URL';  // 예: https://xxxxx.supabase.co
+        const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';  // Supabase 프로젝트의 anon/public key
+
         const words = [
             // 쉬운 단어 (레벨 1-2)
             '사과', '바나나', '포도', '딸기', '수박', '참외', '복숭아', '배', '감', '귤',
@@ -268,6 +364,10 @@
                 this.highScoreDisplay = document.getElementById('highScore');
                 this.startBtn = document.getElementById('startBtn');
                 this.restartBtn = document.getElementById('restartBtn');
+                this.playerNameInput = document.getElementById('playerNameInput');
+                this.saveScoreBtn = document.getElementById('saveScoreBtn');
+                this.saveStatus = document.getElementById('saveStatus');
+                this.leaderboardList = document.getElementById('leaderboardList');
 
                 this.score = 0;
                 this.lives = 3;
@@ -278,14 +378,132 @@
                 this.spawnLoop = null;
                 this.isPlaying = false;
                 this.highScore = localStorage.getItem('typingGameHighScore') || 0;
+                this.playerName = localStorage.getItem('typingGamePlayerName') || '';
+
+                // Supabase 클라이언트 초기화
+                this.supabase = null;
+                this.initSupabase();
 
                 this.bindEvents();
+            }
+
+            initSupabase() {
+                if (SUPABASE_URL !== 'YOUR_SUPABASE_URL' && SUPABASE_ANON_KEY !== 'YOUR_SUPABASE_ANON_KEY') {
+                    try {
+                        this.supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                        console.log('Supabase 연결 성공');
+                    } catch (error) {
+                        console.error('Supabase 초기화 오류:', error);
+                    }
+                } else {
+                    console.log('Supabase 설정이 필요합니다. SUPABASE_URL과 SUPABASE_ANON_KEY를 설정하세요.');
+                }
             }
 
             bindEvents() {
                 this.startBtn.addEventListener('click', () => this.startGame());
                 this.restartBtn.addEventListener('click', () => this.startGame());
                 this.typingInput.addEventListener('input', (e) => this.checkInput(e.target.value));
+                this.saveScoreBtn.addEventListener('click', () => this.saveScore());
+
+                // 플레이어 이름 입력 필드 초기값 설정
+                if (this.playerName) {
+                    this.playerNameInput.value = this.playerName;
+                }
+            }
+
+            async saveScore() {
+                const playerName = this.playerNameInput.value.trim();
+
+                if (!playerName) {
+                    this.showSaveStatus('이름을 입력해주세요.', true);
+                    return;
+                }
+
+                if (!this.supabase) {
+                    this.showSaveStatus('Supabase가 설정되지 않았습니다.', true);
+                    return;
+                }
+
+                // 플레이어 이름 저장
+                localStorage.setItem('typingGamePlayerName', playerName);
+                this.playerName = playerName;
+
+                this.saveScoreBtn.disabled = true;
+                this.showSaveStatus('저장 중...');
+
+                try {
+                    const { data, error } = await this.supabase
+                        .from('game_history')
+                        .insert([
+                            {
+                                player_name: playerName,
+                                score: this.score,
+                                level: this.level,
+                                played_at: new Date().toISOString()
+                            }
+                        ]);
+
+                    if (error) throw error;
+
+                    this.showSaveStatus('기록이 저장되었습니다!');
+                    this.loadLeaderboard();
+                } catch (error) {
+                    console.error('저장 오류:', error);
+                    this.showSaveStatus('저장에 실패했습니다: ' + error.message, true);
+                } finally {
+                    this.saveScoreBtn.disabled = false;
+                }
+            }
+
+            showSaveStatus(message, isError = false) {
+                this.saveStatus.textContent = message;
+                this.saveStatus.classList.remove('hidden', 'error');
+                if (isError) {
+                    this.saveStatus.classList.add('error');
+                }
+            }
+
+            async loadLeaderboard() {
+                if (!this.supabase) {
+                    this.leaderboardList.innerHTML = '<p style="font-size: 12px; color: #aaa;">Supabase 설정 후 리더보드가 표시됩니다.</p>';
+                    return;
+                }
+
+                try {
+                    const { data, error } = await this.supabase
+                        .from('game_history')
+                        .select('player_name, score, level')
+                        .order('score', { ascending: false })
+                        .limit(10);
+
+                    if (error) throw error;
+
+                    if (!data || data.length === 0) {
+                        this.leaderboardList.innerHTML = '<p style="font-size: 12px; color: #aaa;">아직 기록이 없습니다.</p>';
+                        return;
+                    }
+
+                    this.leaderboardList.innerHTML = data.map((item, index) => {
+                        const isCurrentScore = item.player_name === this.playerName && item.score === this.score;
+                        return `
+                            <div class="leaderboard-item ${isCurrentScore ? 'highlight' : ''}">
+                                <span class="rank">${index + 1}</span>
+                                <span class="name">${this.escapeHtml(item.player_name)}</span>
+                                <span class="score">${item.score}점</span>
+                            </div>
+                        `;
+                    }).join('');
+                } catch (error) {
+                    console.error('리더보드 로드 오류:', error);
+                    this.leaderboardList.innerHTML = '<p style="font-size: 12px; color: #ff6b6b;">리더보드를 불러올 수 없습니다.</p>';
+                }
+            }
+
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
             }
 
             startGame() {
@@ -482,6 +700,9 @@
                 clearInterval(this.gameLoop);
                 clearInterval(this.spawnLoop);
 
+                // 입력 필드 초기화
+                this.typingInput.value = '';
+
                 if (this.score > this.highScore) {
                     this.highScore = this.score;
                     localStorage.setItem('typingGameHighScore', this.highScore);
@@ -489,6 +710,14 @@
 
                 this.finalScoreDisplay.textContent = this.score;
                 this.highScoreDisplay.textContent = this.highScore;
+
+                // 저장 상태 초기화
+                this.saveStatus.classList.add('hidden');
+                this.saveScoreBtn.disabled = false;
+
+                // 리더보드 로드
+                this.loadLeaderboard();
+
                 this.gameOverScreen.classList.remove('hidden');
             }
         }
