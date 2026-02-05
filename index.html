@@ -675,7 +675,8 @@
             }
 
             clearWords() {
-                this.activeWords.forEach(w => w.element.remove());
+                // 모든 게임 요소 제거 (단어, 콤보 텍스트, 파티클 이펙트)
+                this.gameArea.querySelectorAll('.word, .combo, .effect').forEach(el => el.remove());
                 this.activeWords = [];
             }
 
